@@ -4,12 +4,17 @@
 
 #include <type_traits>
 #include <memory>
+#include <exception>
 
 namespace pd
 {
 
-struct nullopt_t {};
-static constexpr nullopt_t nullopt{};
+// TAGS
+struct in_place_t
+{
+    explicit in_place_t() = default;
+};
+constexpr static in_place_t in_place{};
 
 namespace detail
 {
@@ -21,10 +26,11 @@ template<typename T, bool = std::is_trivially_destructible<T>::value>
 struct optional_storage_
 {
     constexpr optional_storage_() noexcept 
-        : nullopt_{}, is_set_{false} {}
+        : dummy_{}, is_set_{false} {}
 
-    constexpr optional_storage_(pd::nullopt_t) noexcept
-        : optional_storage_() {}
+    template<typename... Ts>
+    constexpr optional_storage_(pd::in_place_t, Ts... args)
+        : value_(std::forward<Ts>(args)...), is_set_(true) {}
 
     ~optional_storage_()
     {
@@ -36,9 +42,10 @@ struct optional_storage_
     }
 
 private:
+    struct dummy_t{};
     union
     {
-        nullopt_t nullopt_;
+        dummy_t dummy_;
         T value_;
     };
     bool is_set_;
@@ -48,15 +55,17 @@ template<typename T>
 struct optional_storage_<T, true>
 {
     constexpr optional_storage_() noexcept 
-        : nullopt_{}, is_set_{false} {}
+        : dummy_{}, is_set_{false} {}
 
-    constexpr optional_storage_(pd::nullopt_t) noexcept
-        : optional_storage_() {}
+    template<typename... Ts>
+    constexpr optional_storage_(pd::in_place_t, Ts... args)
+        : value_(std::forward<Ts>(args)...), is_set_(true) {}
 
 private:
+    struct dummy_t{};
     union
     {
-        nullopt_t nullopt_;
+        dummy_t dummy_;
         T value_;
     };
     bool is_set_;
@@ -327,9 +336,34 @@ struct optional_delete_copy_or_move_assign_<T, false, true> {
 };
 } // namespace detail
 
-template<typename T>
-struct optional
+struct nullopt_t 
 {
+    struct hidden_{};
+    constexpr explicit nullopt_t(hidden_) noexcept {}
+};
+
+static constexpr nullopt_t nullopt{nullopt_t::hidden_{}};
+
+struct bad_optional_access : public std::exception
+{
+    bad_optional_access() = default;
+
+    const char* what() const noexcept
+    {
+        return "Optional has no value or etc";
+    }
+};
+
+template<typename T>
+struct optional : private detail::optional_move_assign_<T>,
+                  private detail::optional_delete_copy_or_move_<T>,
+                  private detail::optional_delete_copy_or_move_assign_<T>
+{
+private:
+    using base = detail::optional_move_assign_<T>;
+
+    static_assert(!std::is_same<in_place_t, std::decay<T>>::value, "instatiation with in_place_t is ill-formed");
+    static_assert(!std::is_same<nullopt_t, std::decay<T>>::value, "instatiation with nullopt_t is ill-formed");
 };
 
 } // namespace pd
