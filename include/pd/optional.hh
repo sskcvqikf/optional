@@ -37,7 +37,7 @@ struct optional_storage_
         : dummy_{}, is_set_{false} {}
 
     template<typename... Args>
-    constexpr optional_storage_(pd::in_place_t, Args... args)
+    constexpr optional_storage_(pd::in_place_t, Args&&... args)
         : value_(std::forward<Args>(args)...), is_set_(true) {}
 
     ~optional_storage_()
@@ -65,7 +65,7 @@ struct optional_storage_<T, true>
         : dummy_{}, is_set_{false} {}
 
     template<typename... Args>
-    constexpr optional_storage_(pd::in_place_t, Args... args)
+    constexpr optional_storage_(pd::in_place_t, Args&&... args)
         : value_(std::forward<Args>(args)...), is_set_(true) {}
 
     struct dummy_t{};
@@ -786,13 +786,13 @@ constexpr pd::optional<std::decay_t<T>> make_optional(T &&t)
 }
 
 template<typename T, typename... Args>
-constexpr pd::optional<std::decay_t<T>> make_optional(Args... args)
+constexpr pd::optional<std::decay_t<T>> make_optional(Args&&... args)
 {
     return pd::optional<T>(pd::in_place, std::forward<T>(args)...);
 }
 
 template<typename T, typename U, typename... Args>
-constexpr pd::optional<std::decay_t<T>> make_optional(std::initializer_list<U> ilist, Args... args)
+constexpr pd::optional<std::decay_t<T>> make_optional(std::initializer_list<U> ilist, Args&&... args)
 {
     return pd::optional<T>(pd::in_place, ilist, std::forward<T>(args)...);
 }
