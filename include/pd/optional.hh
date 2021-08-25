@@ -19,13 +19,6 @@ constexpr static in_place_t in_place{};
 namespace detail
 {
 
-
-// Useful types
-template<bool V, typename T = void>
-using enable_if_t = typename std::enable_if<V, T>::type;
-
-
-
 // optional_storage_ holds actual data and responsible
 // for proper object deletion since union requires it
 // two versions: one for trivial destructible object
@@ -84,43 +77,45 @@ template <typename T>
 struct optional_operations_ : optional_storage_<T>
 {
     using optional_storage_<T>::optional_storage_; // pulling constructors
+    using optional_storage_<T>::value_;
+    using optional_storage_<T>::is_set_;
     
     constexpr bool has_value() const noexcept
     {
-        return this->is_set_;
+        return is_set_;
     }
 
     constexpr T& get() &
     {
-        return this->value_;
+        return value_;
     }
 
     constexpr const T& get() const &
     {
-        return this->value_;
+        return value_;
     }
 
     constexpr T&& get() &&
     {
-        return std::move(this->value_);
+        return std::move(value_);
     }
 
     constexpr const T&& get() const &&
     {
-        return std::move(this->value_);
+        return std::move(value_);
     }
 
     constexpr void hard_reset()
     {
         get().~T();
-        this->is_set_ = false;
+        is_set_ = false;
     }
 
     template<typename... Args>
     constexpr void construct(Args&&... args) noexcept(noexcept(T(std::forward<Args>(args)...)))
     {
-        new (std::addressof(this->value_)) T(std::forward<Args>(args)...);
-        this->is_set_ = true;
+        new (std::addressof(value_)) T(std::forward<Args>(args)...);
+        is_set_ = true;
     }
 
     template<typename Option>
@@ -143,6 +138,8 @@ template<typename T, bool = std::is_trivially_copy_constructible<T>::value>
 struct optional_copy_ : optional_operations_<T>
 {
     using optional_operations_<T>::optional_operations_;
+    using optional_operations_<T>::value_;
+    using optional_operations_<T>::is_set_;
 
     constexpr optional_copy_(const optional_copy_ &other)
         : optional_copy_()
@@ -152,11 +149,11 @@ struct optional_copy_ : optional_operations_<T>
     }
 
     constexpr optional_copy_() = default;
-    constexpr optional_copy_(optional_copy_ &&) = default;
+    constexpr optional_copy_(optional_copy_&&) = default;
     constexpr optional_copy_&
-    operator= (const optional_copy_ &) = default;
+    operator= (const optional_copy_&) = default;
     constexpr optional_copy_&
-    operator= (optional_copy_ &&) = default;
+    operator= (optional_copy_&&) = default;
 };
 
 template<typename T>
@@ -170,19 +167,21 @@ template<typename T, bool = std::is_trivially_move_constructible<T>::value>
 struct optional_move_ : optional_copy_<T>
 {
     using optional_copy_<T>::optional_copy_;
+    using optional_copy_<T>::value_;
+    using optional_copy_<T>::is_set_;
 
-    constexpr optional_move_(optional_move_ &&other) noexcept(std::is_nothrow_move_constructible<T>::value)
+    constexpr optional_move_(optional_move_ &&other) noexcept
     {
         if (other->has_value())
             construct(std::move(other.get()));
     }
 
     constexpr optional_move_() = default;
-    constexpr optional_move_(const optional_move_ &) = default;
+    constexpr optional_move_(const optional_move_&) = default;
     constexpr optional_move_&
-    operator= (const optional_move_ &) = default;
+    operator= (const optional_move_&) = default;
     constexpr optional_move_&
-    operator= (optional_move_ &&) = default;
+    operator= (optional_move_&&) = default;
 };
 
 template<typename T>
@@ -207,10 +206,10 @@ struct optional_copy_assign_ : optional_move_<T>
     }
 
     constexpr optional_copy_assign_() = default;
-    constexpr optional_copy_assign_(const optional_copy_assign_ &) = default;
-    constexpr optional_copy_assign_(optional_copy_assign_ &&) = default;
+    constexpr optional_copy_assign_(const optional_copy_assign_&) = default;
+    constexpr optional_copy_assign_(optional_copy_assign_&&) = default;
     constexpr optional_copy_assign_&
-    operator= (optional_copy_assign_ &&) = default;
+    operator= (optional_copy_assign_&&) = default;
 };
 
 template<typename T>
@@ -235,10 +234,10 @@ struct optional_move_assign_ : optional_copy_assign_<T>
     }
 
     constexpr optional_move_assign_() = default;
-    constexpr optional_move_assign_(const optional_move_assign_ &) = default;
-    constexpr optional_move_assign_(optional_move_assign_ &&) = default;
+    constexpr optional_move_assign_(const optional_move_assign_&) = default;
+    constexpr optional_move_assign_(optional_move_assign_&&) = default;
     constexpr optional_move_assign_& 
-    operator= (const optional_move_assign_ &) = default;
+    operator= (const optional_move_assign_&) = default;
 };
 
 template<typename T>
@@ -252,45 +251,45 @@ template<typename T, bool IsCopy = std::is_copy_constructible<T>::value,
                      bool IsMove = std::is_move_constructible<T>::value>
 struct optional_delete_copy_or_move_ {
     constexpr optional_delete_copy_or_move_() = default;
-    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_ &) = delete;
-    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_ &&) = delete;
+    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_&) = delete;
+    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_&&) noexcept = delete;
     constexpr optional_delete_copy_or_move_&
-    operator= (const optional_delete_copy_or_move_ &) = default;
+    operator= (const optional_delete_copy_or_move_&) = default;
     constexpr optional_delete_copy_or_move_&
-    operator= (optional_delete_copy_or_move_ &&) = default;
+    operator= (optional_delete_copy_or_move_&&) noexcept = default;
 };
 
 template<typename T>
 struct optional_delete_copy_or_move_<T, true, true> {
     constexpr optional_delete_copy_or_move_() = default;
-    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_ &) = default;
-    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_ &&) = default;
+    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_&) = default;
+    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_&&) noexcept = default;
     constexpr optional_delete_copy_or_move_&
-    operator= (const optional_delete_copy_or_move_ &) = default;
+    operator= (const optional_delete_copy_or_move_&) = default;
     constexpr optional_delete_copy_or_move_&
-    operator= (optional_delete_copy_or_move_ &&) = default;
+    operator= (optional_delete_copy_or_move_&&) noexcept = default;
 };
 
 template<typename T>
 struct optional_delete_copy_or_move_<T, true, false> {
     constexpr optional_delete_copy_or_move_() = default;
-    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_ &) = default;
-    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_ &&) = delete;
+    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_&) = default;
+    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_&&) noexcept = delete;
     constexpr optional_delete_copy_or_move_&
-    operator= (const optional_delete_copy_or_move_ &) = default;
+    operator= (const optional_delete_copy_or_move_&) = default;
     constexpr optional_delete_copy_or_move_&
-    operator= (optional_delete_copy_or_move_ &&) = default;
+    operator= (optional_delete_copy_or_move_&&) noexcept = default;
 };
 
 template<typename T>
 struct optional_delete_copy_or_move_<T, false, true> {
     constexpr optional_delete_copy_or_move_() = default;
-    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_ &) = delete;
-    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_ &&) = default;
+    constexpr optional_delete_copy_or_move_(const optional_delete_copy_or_move_&) = delete;
+    constexpr optional_delete_copy_or_move_(optional_delete_copy_or_move_&&) noexcept = default;
     constexpr optional_delete_copy_or_move_&
-    operator= (const optional_delete_copy_or_move_ &) = default;
+    operator= (const optional_delete_copy_or_move_&) = default;
     constexpr optional_delete_copy_or_move_&
-    operator= (optional_delete_copy_or_move_ &&) = default;
+    operator= (optional_delete_copy_or_move_&&) noexcept = default;
 };
 
 // handling the case where T cannot be copy/move assignable 
@@ -300,45 +299,45 @@ template<typename T, bool IsCopy = std::is_copy_constructible<T>::value &&
                                    std::is_move_assignable<T>::value>
 struct optional_delete_copy_or_move_assign_ {
     constexpr optional_delete_copy_or_move_assign_() = default;
-    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_ &) = default;
-    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_ &&) = default;
+    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_&) = default;
+    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_&&) noexcept = default;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (const optional_delete_copy_or_move_assign_ &) = delete;
+    operator= (const optional_delete_copy_or_move_assign_&) = delete;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (optional_delete_copy_or_move_assign_ &&) = delete;
+    operator= (optional_delete_copy_or_move_assign_&&) noexcept = delete;
 };
 
 template<typename T>
 struct optional_delete_copy_or_move_assign_<T, true, true> {
     constexpr optional_delete_copy_or_move_assign_() = default;
-    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_ &) = default;
-    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_ &&) = default;
+    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_&) = default;
+    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_&&) noexcept = default;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (const optional_delete_copy_or_move_assign_ &) = default;
+    operator= (const optional_delete_copy_or_move_assign_&) = default;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (optional_delete_copy_or_move_assign_ &&) = default;
+    operator= (optional_delete_copy_or_move_assign_&&) noexcept = default;
 };
 
 template<typename T>
 struct optional_delete_copy_or_move_assign_<T, true, false> {
     constexpr optional_delete_copy_or_move_assign_() = default;
-    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_ &) = default;
-    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_ &&) = default;
+    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_&) = default;
+    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_&&) noexcept = default;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (const optional_delete_copy_or_move_assign_ &) = default;
+    operator= (const optional_delete_copy_or_move_assign_&) = default;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (optional_delete_copy_or_move_assign_ &&) = delete;
+    operator= (optional_delete_copy_or_move_assign_&&) noexcept = delete;
 };
 
 template<typename T>
 struct optional_delete_copy_or_move_assign_<T, false, true> {
     constexpr optional_delete_copy_or_move_assign_() = default;
-    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_ &) = default;
-    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_ &&) = default;
+    constexpr optional_delete_copy_or_move_assign_(const optional_delete_copy_or_move_assign_&) = default;
+    constexpr optional_delete_copy_or_move_assign_(optional_delete_copy_or_move_assign_&&) noexcept = default;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (const optional_delete_copy_or_move_assign_ &) = delete;
+    operator= (const optional_delete_copy_or_move_assign_&) = delete;
     constexpr optional_delete_copy_or_move_assign_&
-    operator= (optional_delete_copy_or_move_assign_ &&) = default;
+    operator= (optional_delete_copy_or_move_assign_&&) noexcept = default;
 };
 
 } // namespace detail
@@ -381,14 +380,17 @@ public:
     constexpr optional(const optional&) = default;
     constexpr optional(optional&&) = default;
 
+    constexpr optional& operator= (const optional&) = default;
+    constexpr optional& operator= (optional&&) = default;
+
     // In place construction
     template<typename... Args>
-    constexpr explicit optional(detail::enable_if_t<std::is_constructible<T, Args...>::value, pd::in_place_t>,
+    constexpr explicit optional(std::enable_if_t<std::is_constructible<T, Args...>::value, pd::in_place_t>,
             Args&&... args) : base(in_place, std::forward<Args>(args)...) {}
 
     template<typename I, typename... Args>
     constexpr explicit optional(
-            detail::enable_if_t<std::is_constructible<T, std::initializer_list<I>&, Args...>::value,
+            std::enable_if_t<std::is_constructible<T, std::initializer_list<I>&, Args...>::value,
             in_place_t>, std::initializer_list<I> ilist, Args&&... args)
     {
         this->construct(ilist, std::forward<Args>(args)...);
@@ -396,16 +398,22 @@ public:
 
     // Contruct stored value with value of type U
     template<typename U = T,
-             detail::enable_if_t<std::is_convertible<U&&, T>::value> * = nullptr>
+             std::enable_if_t<std::is_convertible<U&&, T>::value> * = nullptr,
+             std::enable_if_t<std::is_constructible<T, U &&>::value &&
+                              !std::is_same<std::decay_t<U>, in_place_t>::value &&
+                              !std::is_same<optional<T>, std::decay_t<U>>::value> * = nullptr>
     constexpr optional(U &&u) : base(in_place, std::forward<U>(u)) {}
 
     template<typename U = T,
-             detail::enable_if_t<!std::is_convertible<U&&, T>::value> * = nullptr>
+             std::enable_if_t<!std::is_convertible<U&&, T>::value> * = nullptr,
+             std::enable_if_t<std::is_constructible<T, U &&>::value &&
+                              !std::is_same<std::decay_t<U>, in_place_t>::value &&
+                              !std::is_same<optional<T>, std::decay_t<U>>::value>* = nullptr>
     constexpr explicit optional(U &&u) : base(in_place, std::forward<U>(u)) {}
 
     // Copy constructor
     template<typename U = T,
-            detail::enable_if_t<std::is_constructible<T, U&&>::value &&
+            std::enable_if_t<std::is_constructible<T, U&&>::value &&
                                 std::is_convertible<const U&, T>::value> * = nullptr>
     constexpr optional(const optional<U> &other)
     {
@@ -414,7 +422,7 @@ public:
     }
 
     template<typename U = T,
-            detail::enable_if_t<std::is_constructible<T, U&&>::value &&
+            std::enable_if_t<std::is_constructible<T, U&&>::value &&
                                 !std::is_convertible<const U&, T>::value> * = nullptr>
     constexpr explicit optional(const optional<U> &other)
     {
@@ -424,7 +432,7 @@ public:
 
     // Move constructor
     template<typename U = T,
-            detail::enable_if_t<std::is_constructible<T, U&&>::value &&
+            std::enable_if_t<std::is_constructible<T, U&&>::value &&
                                 std::is_convertible<U&&, T>::value> * = nullptr>
     constexpr optional(optional<U> &&other)
     {
@@ -433,7 +441,7 @@ public:
     }
 
     template<typename U = T,
-            detail::enable_if_t<std::is_constructible<T, U&&>::value &&
+            std::enable_if_t<std::is_constructible<T, U&&>::value &&
                                 !std::is_convertible<U&&, T>::value> * = nullptr>
     constexpr explicit optional(optional<U> &&other)
     {
@@ -455,10 +463,7 @@ public:
         return *this;
     }
 
-    constexpr optional& operator= (const optional&) = default;
-    constexpr optional& operator= (optional&&) = default;
-
-    template<typename U, detail::enable_if_t<std::is_constructible<T, U&&>::value && std::is_assignable<T&, U>::value>* = nullptr>
+    template<typename U, std::enable_if_t<std::is_constructible<T, U&&>::value && std::is_assignable<T&, U>::value>* = nullptr>
     constexpr optional& operator= (U &&u)
     {
         if(this->has_value())
@@ -469,7 +474,7 @@ public:
     }
 
     template<typename U, 
-        detail::enable_if_t<std::is_constructible<T, const U&>::value && std::is_assignable<T, const U&>::value> * = nullptr>
+        std::enable_if_t<std::is_constructible<T, const U&>::value && std::is_assignable<T, const U&>::value> * = nullptr>
     constexpr optional& operator= (const optional<U> &other)
     {
         if (other.has_value())
@@ -483,7 +488,7 @@ public:
     }
 
     template<typename U, 
-        detail::enable_if_t<std::is_constructible<T, U&&>::value && std::is_assignable<T, U&&>::value> * = nullptr>
+        std::enable_if_t<std::is_constructible<T, U&&>::value && std::is_assignable<T, U&&>::value> * = nullptr>
     constexpr optional& operator= (optional<U> &&other)
     {
         if (other.has_value())
@@ -771,8 +776,8 @@ inline constexpr bool operator>=(const U &lhs, const pd::optional<T> &rhs) {
 }
 
 template<typename T,
-          pd::detail::enable_if_t<std::is_move_constructible<T>::value> * = nullptr,
-          pd::detail::enable_if_t<std::is_swappable<T>::value> * = nullptr>
+        std::enable_if_t<std::is_move_constructible<T>::value> * = nullptr,
+        std::enable_if_t<std::is_swappable<T>::value> * = nullptr>
 void swap(pd::optional<T> &lhs, pd::optional<T> &rhs) noexcept(noexcept(lhs.swap(rhs))) {
     return lhs.swap(rhs);
 }
