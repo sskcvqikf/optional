@@ -1,0 +1,18 @@
+ame:  Test
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v1
+      
+      - name: Run make
+        run: make
+
+      - name: Run tests
+        run: ./main
