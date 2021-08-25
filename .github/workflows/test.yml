@@ -13,6 +13,12 @@ jobs:
       
       - name: Run make
         run: make
+        
+      - name: GCC version
+        run: g++ --version
+        
+      - name: clang version
+        run: clang++ --version
 
       - name: Run tests
         run: ./main
