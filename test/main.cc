@@ -16,12 +16,36 @@ bool is_failed = false;
 #define TEST(name)                                      \
     void name(void* = print_testname(#name))            \
 
+#ifdef TEST_VERBOSE
+
 #define ASSERT(expr, message)                           \
     std::cout << "RUNNING: " << #expr;                  \
     if (!(expr)){ is_failed = true;                     \
         std::cerr << " - FAILED.\n" << __FILE__ << ":"  \
             << __LINE__ << " " << message << '\n';}     \
     else std::cout << " - PASSED.\n";
+
+#define REQUIRE(expr)                                   \
+    std::cout << "RUNNING: " << #expr;                  \
+    if (!(expr)){ is_failed = true;                     \
+        std::cerr << " - FAILED." << __FILE__ << ":"    \
+            << __LINE__ << '\n';}                       \
+    else std::cout << " - PASSED.\n";
+
+#else
+#define ASSERT(expr, message)                           \
+    if (!(expr)){ is_failed = true;                     \
+        std::cerr << "RUNNING: " << #expr               \
+            << " - FAILED.\n" << __FILE__ << ":"        \
+            << __LINE__ << " " << message << '\n';}     \
+
+#define REQUIRE(expr)                                   \
+    if (!(expr)){ is_failed = true;                     \
+        std::cerr << "RUNNING: " << #expr               \
+            << " - FAILED." << __FILE__ << ":"          \
+            << __LINE__ << '\n';}                       \
+
+#endif // TEST_VERBOSE
 
 #define ASSERT_THROW(expr, exc, message)                \
     std::cout << "RUNNING: " << #expr;                  \
@@ -79,81 +103,81 @@ TEST(testTriviality)
 {
     using namespace pd;
     // int is obviously must be trivial
-    ASSERT(std::is_trivially_copy_constructible_v<optional<int>>, "optional<int> must be trivially copy constructible");
-    ASSERT(std::is_trivially_copy_assignable_v<optional<int>>, "optional<int> must be trivially copy assignable");
-    ASSERT(std::is_trivially_move_constructible_v<optional<int>>, "optional<int> must be trivially move constructible");
-    ASSERT(std::is_trivially_move_assignable_v<optional<int>>, "optional<int> must be trivially move assignable");
-    ASSERT(std::is_trivially_destructible_v<optional<int>>, "optional<int> must be trivially destructible");
+    REQUIRE(std::is_trivially_copy_constructible_v<optional<int>>);
+    REQUIRE(std::is_trivially_copy_assignable_v<optional<int>>);
+    REQUIRE(std::is_trivially_move_constructible_v<optional<int>>);
+    REQUIRE(std::is_trivially_move_assignable_v<optional<int>>);
+    REQUIRE(std::is_trivially_destructible_v<optional<int>>);
 
     // string is not trivial
     using std::string;
-    ASSERT(!std::is_trivially_copy_constructible_v<optional<string>>, "optional<string> must not be trivially copy consstructible");
-    ASSERT(!std::is_trivially_copy_assignable_v<optional<string>>, "optional<string> must not be trivially copy assignable");
-    ASSERT(!std::is_trivially_move_constructible_v<optional<string>>, "optional<string> must not be trivially move constructible");
-    ASSERT(!std::is_trivially_move_assignable_v<optional<string>>, "optional<string> must not be trivially move assignable");
-    ASSERT(!std::is_trivially_destructible_v<optional<string>>, "optional<string> must not be trivially destructible");
+    REQUIRE(!std::is_trivially_copy_constructible_v<optional<string>>);
+    REQUIRE(!std::is_trivially_copy_assignable_v<optional<string>>);
+    REQUIRE(!std::is_trivially_move_constructible_v<optional<string>>);
+    REQUIRE(!std::is_trivially_move_assignable_v<optional<string>>);
+    REQUIRE(!std::is_trivially_destructible_v<optional<string>>);
 
     TYPE_GENERATOR(trivial, =default, =default, =default, =default, =default);
 
-    ASSERT(std::is_trivially_copy_constructible_v<optional<trivial>>, "optional<trivial> must be trivially copy consstructible");
-    ASSERT(std::is_trivially_copy_assignable_v<optional<trivial>>, "optional<trivial> must be trivially copy assignable");
-    ASSERT(std::is_trivially_move_constructible_v<optional<trivial>>, "optional<trivial> must be trivially move constructible");
-    ASSERT(std::is_trivially_move_assignable_v<optional<trivial>>, "optional<trivial> must be trivially move assignable");
-    ASSERT(std::is_trivially_destructible_v<optional<trivial>>, "optional<trivial> must be trivially destructible");
+    REQUIRE(std::is_trivially_copy_constructible_v<optional<trivial>>);
+    REQUIRE(std::is_trivially_copy_assignable_v<optional<trivial>>);
+    REQUIRE(std::is_trivially_move_constructible_v<optional<trivial>>);
+    REQUIRE(std::is_trivially_move_assignable_v<optional<trivial>>);
+    REQUIRE(std::is_trivially_destructible_v<optional<trivial>>);
 
     TYPE_GENERATOR(nontrivial, {}, {}, {return *this;}, {return *this;}, {});
 
-    ASSERT(!std::is_trivially_copy_constructible_v<optional<nontrivial>>, "optional<nontrivial> must not be nontrivially copy consstructible");
-    ASSERT(!std::is_trivially_copy_assignable_v<optional<nontrivial>>, "optional<nontrivial> must not be nontrivially copy assignable");
-    ASSERT(!std::is_trivially_move_constructible_v<optional<nontrivial>>, "optional<nontrivial> must not be nontrivially move constructible");
-    ASSERT(!std::is_trivially_move_assignable_v<optional<nontrivial>>, "optional<nontrivial> must not be nontrivially move assignable");
-    ASSERT(!std::is_trivially_destructible_v<optional<nontrivial>>, "optional<nontrivial> must not be nontrivially destructible");
+    REQUIRE(!std::is_trivially_copy_constructible_v<optional<nontrivial>>);
+    REQUIRE(!std::is_trivially_copy_assignable_v<optional<nontrivial>>);
+    REQUIRE(!std::is_trivially_move_constructible_v<optional<nontrivial>>);
+    REQUIRE(!std::is_trivially_move_assignable_v<optional<nontrivial>>);
+    REQUIRE(!std::is_trivially_destructible_v<optional<nontrivial>>);
 }
 
 TEST(testTypeProperties)
 {
     using namespace pd;
 
-    ASSERT(std::is_copy_constructible_v<optional<int>>, "optional<int> must be copy constructible");
-    ASSERT(std::is_copy_assignable_v<optional<int>>, "optional<int> must be copy assignable");
-    ASSERT(std::is_move_constructible_v<optional<int>>, "optional<int> must be move constructible");
-    ASSERT(std::is_move_assignable_v<optional<int>>, "optional<int> must be move assignable");
-    ASSERT(std::is_destructible_v<optional<int>>, "optional<int> must be destructible");
+    REQUIRE(std::is_copy_constructible_v<optional<int>>);
+    REQUIRE(std::is_copy_assignable_v<optional<int>>);
+    REQUIRE(std::is_move_constructible_v<optional<int>>);
+    REQUIRE(std::is_move_assignable_v<optional<int>>);
+    REQUIRE(std::is_destructible_v<optional<int>>);
     
     using std::string;
-    ASSERT(std::is_copy_constructible_v<optional<string>>, "optional<string> must be copy constructible");
-    ASSERT(std::is_copy_assignable_v<optional<string>>, "optional<string> must be copy assignable");
-    ASSERT(std::is_move_constructible_v<optional<string>>, "optional<string> must be move constructible");
-    ASSERT(std::is_move_assignable_v<optional<string>>, "optional<string> must be move assignable");
-    ASSERT(std::is_destructible_v<optional<string>>, "optional<string> must be destructible");
+    REQUIRE(std::is_copy_constructible_v<optional<string>>);
+    REQUIRE(std::is_copy_assignable_v<optional<string>>);
+    REQUIRE(std::is_move_constructible_v<optional<string>>);
+    REQUIRE(std::is_move_assignable_v<optional<string>>);
+    REQUIRE(std::is_destructible_v<optional<string>>);
 
     TYPE_GENERATOR(defaultType, =default, =default, =default, =default, =default);
-    ASSERT(std::is_copy_constructible_v<optional<defaultType>>, "optional<defaultType> must be copy constructible");
-    ASSERT(std::is_copy_assignable_v<optional<defaultType>>, "optional<defaultType> must be copy assignable");
-    ASSERT(std::is_move_constructible_v<optional<defaultType>>, "optional<defaultType> must be move constructible");
-    ASSERT(std::is_move_assignable_v<optional<defaultType>>, "optional<defaultType> must be move assignable");
-    ASSERT(std::is_destructible_v<optional<defaultType>>, "optional<defaultType> must be destructible");
+    REQUIRE(std::is_copy_constructible_v<optional<defaultType>>);
+    REQUIRE(std::is_copy_assignable_v<optional<defaultType>>);
+    REQUIRE(std::is_move_constructible_v<optional<defaultType>>);
+    REQUIRE(std::is_move_assignable_v<optional<defaultType>>);
+    REQUIRE(std::is_destructible_v<optional<defaultType>>);
 
     TYPE_GENERATOR(onlyDestructorType, =delete, =delete, =delete, =delete, =default);
-    ASSERT(!std::is_copy_constructible_v<optional<onlyDestructorType>>, "optional<onlyDestructorType> must not be copy constructible");
-    ASSERT(!std::is_copy_assignable_v<optional<onlyDestructorType>>, "optional<onlyDestructorType> must not be copy assignable");
-    ASSERT(!std::is_move_constructible_v<optional<onlyDestructorType>>, "optional<onlyDestructorType> must not be move constructible");
-    ASSERT(!std::is_move_assignable_v<optional<onlyDestructorType>>, "optional<onlyDestructorType> must not be move assignable");
-    ASSERT(std::is_destructible_v<optional<onlyDestructorType>>, "optional<onlyDestructorType> must be destructible");
+    REQUIRE(!std::is_copy_constructible_v<optional<onlyDestructorType>>);
+    REQUIRE(!std::is_copy_assignable_v<optional<onlyDestructorType>>);
+    REQUIRE(!std::is_move_constructible_v<optional<onlyDestructorType>>);
+    REQUIRE(!std::is_move_assignable_v<optional<onlyDestructorType>>);
+    REQUIRE(std::is_destructible_v<optional<onlyDestructorType>>);
 
     TYPE_GENERATOR(nonDefaultType, {}, {}, {return *this;}, {return *this;}, {});
-    ASSERT(std::is_copy_constructible_v<optional<nonDefaultType>>, "optional<nonDefaultType> must be copy constructible");
-    ASSERT(std::is_copy_assignable_v<optional<nonDefaultType>>, "optional<nonDefaultType> must be copy assignable");
-    ASSERT(std::is_move_constructible_v<optional<nonDefaultType>>, "optional<nonDefaultType> must be move constructible");
-    ASSERT(std::is_move_assignable_v<optional<nonDefaultType>>, "optional<nonDefaultType> must be move assignable");
-    ASSERT(std::is_destructible_v<optional<nonDefaultType>>, "optional<nonDefaultType> must be destructible");
+    REQUIRE(std::is_copy_constructible_v<optional<nonDefaultType>>);
+    REQUIRE(std::is_copy_assignable_v<optional<nonDefaultType>>);
+    REQUIRE(std::is_move_constructible_v<optional<nonDefaultType>>);
+    REQUIRE(std::is_move_assignable_v<optional<nonDefaultType>>);
+    REQUIRE(std::is_destructible_v<optional<nonDefaultType>>);
 
     TYPE_GENERATOR(randomType, =delete, =default, =delete, =default, =default);
-    ASSERT(!std::is_copy_constructible_v<optional<randomType>>, "optional<randomType> must be copy constructible");
-    ASSERT(!std::is_copy_assignable_v<optional<randomType>>, "optional<randomType> must be copy assignable");
-    ASSERT(std::is_move_constructible_v<optional<randomType>>, "optional<randomType> must be move constructible");
-    ASSERT(std::is_move_assignable_v<optional<randomType>>, "optional<randomType> must be move assignable");
-    ASSERT(std::is_destructible_v<optional<randomType>>, "optional<randomType> must be destructible");
+    REQUIRE(!std::is_copy_constructible_v<optional<randomType>>);
+    REQUIRE(!std::is_copy_assignable_v<optional<randomType>>);
+    REQUIRE(std::is_move_constructible_v<optional<randomType>>);
+    REQUIRE(std::is_move_assignable_v<optional<randomType>>);
+    REQUIRE(std::is_destructible_v<optional<randomType>>);
 
 }
 
