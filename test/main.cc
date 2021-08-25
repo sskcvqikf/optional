@@ -172,13 +172,17 @@ TEST(testTypeProperties)
     REQUIRE(std::is_move_assignable_v<optional<nonDefaultType>>);
     REQUIRE(std::is_destructible_v<optional<nonDefaultType>>);
 
-    TYPE_GENERATOR(randomType, =delete, =default, =delete, =default, =default);
-    REQUIRE(!std::is_copy_constructible_v<optional<randomType>>);
-    REQUIRE(!std::is_copy_assignable_v<optional<randomType>>);
-    REQUIRE(std::is_move_constructible_v<optional<randomType>>);
-    REQUIRE(std::is_move_assignable_v<optional<randomType>>);
-    REQUIRE(std::is_destructible_v<optional<randomType>>);
+    TYPE_GENERATOR(moveType, =delete, =default, =delete, =default, =default);
+    REQUIRE(!std::is_copy_constructible_v<optional<moveType>>);
+    REQUIRE(!std::is_copy_assignable_v<optional<moveType>>);
+    REQUIRE(std::is_move_constructible_v<optional<moveType>>);
+    REQUIRE(std::is_move_assignable_v<optional<moveType>>);
+    REQUIRE(std::is_destructible_v<optional<moveType>>);
 
+    TYPE_GENERATOR(copyType, =default, =delete, =default, =delete, =default);
+    REQUIRE(std::is_copy_constructible_v<optional<copyType>>);
+    REQUIRE(std::is_copy_assignable_v<optional<copyType>>);
+    REQUIRE(std::is_destructible_v<optional<copyType>>);
 }
 
 int main()
