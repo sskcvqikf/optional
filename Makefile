@@ -1,4 +1,4 @@
-CXX = g++
+CXX = clang++
 CXX_FLAGS = -O2 --std=c++17
 
 all:
