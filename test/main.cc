@@ -3,20 +3,40 @@
 
 #include "../include/pd/optional.hh"
 
-#ifndef NDEBUG
-#   define ASSERT(condition, message) \
-    do { \
-        if (! (condition)) { \
-            std::cerr << "Assertion `" #condition "` failed in " << __FILE__ \
-                      << " line " << __LINE__ << ": " << message << std::endl; \
-            std::terminate(); \
-        } \
-    } while (false)
-#else
-#   define ASSERT(condition, message) do { } while (false)
-#endif
+void* print_testname(const char* name)
+{
+    std::cout << " ----- RUNNING " << name
+        << " ----- \n";
+    return nullptr;
+}
 
-void test_assigment()
+bool is_failed = false;
+
+#define TEST(name)                                      \
+    void name(void* = print_testname(#name))            \
+
+#define ASSERT(expr, message)                           \
+    std::cout << "RUNNING: " << #expr;                  \
+    if (!(expr)){ is_failed = true;                     \
+        std::cerr << " - FAILED.\n" << __FILE__ << ":"  \
+            << __LINE__ << " " << message << '\n';}     \
+    else std::cout << " - PASSED.\n";
+
+#define ASSERT_THROW(expr, exc, message)                \
+    std::cout << "RUNNING: " << #expr;                  \
+    try {                                               \
+        expr;                                           \
+        is_failed = true;                               \
+        std::cerr << " - FAILED." << " No exception.\n" \
+        << __FILE__ << ":" << __LINE__ << " "           \
+        << message << '\n';                             \
+    } catch (exc&) {std::cout << " - PASSED.\n";}       \
+      catch (...) { is_failed = true;                   \
+          std::cerr << " - FAILED."                     \
+          << " Other exception.\n" << __FILE__ << ":"   \
+          << __LINE__ << " " << message << '\n';};      \
+
+TEST(testAssigment)
 {
     using namespace pd;
     optional<int> t1 = 5;
@@ -38,6 +58,6 @@ void test_assigment()
 
 int main()
 {
-    test_assigment();
+    testAssigment();
     return 0;
 }
