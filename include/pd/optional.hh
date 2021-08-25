@@ -223,9 +223,9 @@ struct optional_copy_assign_<T, true> : optional_move_<T>
 template<typename T, bool = std::is_trivially_destructible<T>::value &&
                             std::is_trivially_move_constructible<T>::value &&
                             std::is_trivially_move_assignable<T>::value>
-struct optional_move_assign_ : optional_move_<T>
+struct optional_move_assign_ : optional_copy_assign_<T>
 {
-    using optional_move_<T>::optional_move_;
+    using optional_copy_assign_<T>::optional_copy_assign_;
 
     constexpr optional_move_assign_&
     operator= (optional_move_assign_ &&other)
@@ -242,9 +242,9 @@ struct optional_move_assign_ : optional_move_<T>
 };
 
 template<typename T>
-struct optional_move_assign_<T, true> : optional_move_<T>
+struct optional_move_assign_<T, true> :optional_copy_assign_<T>
 {
-    using optional_move_<T>::optional_move_;
+    using optional_copy_assign_<T>::optional_copy_assign_;
 };
 
 // handling the case where T cannot be copy/move constructible 
